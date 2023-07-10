@@ -1,8 +1,12 @@
-import type { NextPage } from "next";
-import { useState, type FC, useEffect } from "react";
-import { api } from "~/utils/api";
+import type { InferGetServerSidePropsType } from "next";
+import { useState, type FC } from "react";
+// import { api } from "~/utils/api";
 import { Form } from "~/components/Form";
 import Head from "next/head";
+import { appRouter } from "~/server/api/root";
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import superjson from "superjson";
+import { prisma } from "~/server/db";
 
 export type TPost = {
     id: string;
@@ -13,19 +17,44 @@ export type TPost = {
     updatedAt: Date;
 };
 
-type HomeProps = {
-    // data: TPost[];
-};
-const Home: NextPage<HomeProps> = () => {
-    const { data, error, isLoading, isFetched } =
-        api.posts.getAllPosts.useQuery();
-    const [posts, setPosts] = useState<TPost[]>([]);
+// type HomeProps = {
+//     data: TPost[];
+// };
 
-    useEffect(() => {
-        isFetched && setPosts(data || []);
-    }, [isFetched, data]);
+export async function getServerSideProps() {
+    const helpers = createServerSideHelpers({
+        router: appRouter,
+        ctx: {
+            session: null,
+            prisma: prisma,
+        },
+        transformer: superjson,
+    });
+    /*
+     * Prefetching the `post.byId` query.
+     * `prefetch` does not return the result and never throws - if you need that behavior, use `fetch` instead.
+     */
+    const data = await helpers.posts.getAllPosts.fetch();
+    // Make sure to return { props: { trpcState: helpers.dehydrate() } }
+    return {
+        props: {
+            trpcState: helpers.dehydrate(),
+            data: data,
+        },
+    };
+}
 
-    if (error) return <p>Oops! something wen wrong :(</p>;
+const Home = (
+    props: InferGetServerSidePropsType<typeof getServerSideProps>
+) => {
+    // const { data } = await api.posts.getAllPosts.useQuery();
+    const [posts, setPosts] = useState<TPost[]>(props.data || []);
+
+    // useEffect(() => {
+    //     isFetched && setPosts(data || []);
+    // }, [isFetched, data]);
+
+    // if (error) return <p>Oops! something wen wrong :(</p>;
 
     return (
         <>
@@ -34,8 +63,9 @@ const Home: NextPage<HomeProps> = () => {
                 <meta name="description" content="Keval Mistry's App 😎" />
             </Head>
             <main className="flex flex-col items-center">
+                {/* <p>{JSON.stringify()}</p> */}
                 <Form setPosts={setPosts} />
-                {isLoading ? (
+                {false ? (
                     <p className="text-center">Loading...</p>
                 ) : (
                     posts.map((post, idx) => <Post key={idx} {...post} />)
