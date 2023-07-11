@@ -62,7 +62,7 @@ const PostView = (
                 <meta name="description" content="Keval Mistry's App 😎" />
                 <meta
                     property="og:image"
-                    content={`http://localhost:3000/api/og?title=${
+                    content={`https://t3-test-orpin.vercel.app/api/og?title=${
                         data?.title || "N/A"
                     }&content=${data?.content || "N/A"}&date=${
                         data?.createdAt || "N/A"
