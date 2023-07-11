@@ -60,6 +60,14 @@ const PostView = (
             <Head>
                 <title>Keval Mistry</title>
                 <meta name="description" content="Keval Mistry's App 😎" />
+                <meta
+                    property="og:image"
+                    content={`http://localhost:3000/api/og?title=${
+                        data?.title || "N/A"
+                    }&content=${data?.content || "N/A"}&date=${
+                        data?.createdAt || "N/A"
+                    }`}
+                />
             </Head>
             <main className="flex flex-col items-center">
                 {data && <Post key={data.id} {...data} />}
