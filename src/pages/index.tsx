@@ -7,6 +7,7 @@ import { appRouter } from "~/server/api/root";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import superjson from "superjson";
 import { prisma } from "~/server/db";
+import Link from "next/link";
 
 export type TPost = {
     id: string;
@@ -78,23 +79,27 @@ const Home = (
 const Post: FC<TPost> = ({
     content,
     createdAt,
-    // id,
+    id,
     title,
     // updatedAt,
     // uuid,
 }) => (
-    <div className="mt-4 flex min-w-[300px] flex-col gap-2 rounded-2xl border bg-white p-4 shadow-lg">
-        <p>
-            <span className="font-bold">Title: </span> {title}
-        </p>
-        <p>
-            <span className="font-bold">Content: </span> {content}
-        </p>
-        <p>
-            Created On:{" "}
-            <code>{new Intl.DateTimeFormat("en-US").format(createdAt)}</code>
-        </p>
-    </div>
+    <Link href={`/post/${id}`}>
+        <div className="mt-4 flex min-w-[300px] flex-col gap-2 rounded-2xl border bg-white p-4 shadow-lg">
+            <p>
+                <span className="font-bold">Title: </span> {title}
+            </p>
+            <p>
+                <span className="font-bold">Content: </span> {content}
+            </p>
+            <p>
+                Created On:{" "}
+                <code>
+                    {new Intl.DateTimeFormat("en-US").format(createdAt)}
+                </code>
+            </p>
+        </div>
+    </Link>
 );
 
 export default Home;

@@ -33,7 +33,9 @@ export const postsRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input: { id } }) => {
             if (id) {
-                await ctx.prisma.post.findUnique({ where: { id } });
+                return await ctx.prisma.post.findUnique({ where: { id } });
+            } else {
+                throw Error("Not found");
             }
         }),
 });
