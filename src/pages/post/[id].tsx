@@ -2,14 +2,15 @@ import type {
     GetServerSidePropsContext,
     InferGetServerSidePropsType,
 } from "next";
-import { type FC } from "react";
-// import { api } from "~/utils/api";
-import Head from "next/head";
-import { appRouter } from "~/server/api/root";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import superjson from "superjson";
+import { formatDistance } from "date-fns";
+import { appRouter } from "~/server/api/root";
 import { prisma } from "~/server/db";
-import type { TPost } from "..";
+import { type TPost } from "..";
+import { type FC } from "react";
+import superjson from "superjson";
+import Head from "next/head";
+// import { api } from "~/utils/api";
 
 export async function getServerSideProps(
     context: GetServerSidePropsContext<{ id: string }>
@@ -23,27 +24,28 @@ export async function getServerSideProps(
         transformer: superjson,
     });
     const id = context.params?.id as string;
-    // console.log(id);
-
     const data = await helpers.posts.getOnePost.fetch({
         id: id,
-        // id: "clju2de120002i3o4zfrnduhp",
     });
 
-    const newD =
+    const finalDataProps =
         data !== null
             ? {
-                  id: data.id,
-                  uuid: data.uuid,
-                  title: data.title,
-                  content: data.content,
-                  //   createdAt: data.createdAt.toString(),
+                  ...data,
+                  createdAt: formatDistance(
+                      new Date(data.createdAt),
+                      new Date()
+                  ),
+                  updatedAt: formatDistance(
+                      new Date(data.updatedAt),
+                      new Date()
+                  ),
               }
             : null;
     return {
         props: {
             trpcState: helpers.dehydrate(),
-            data: newD,
+            data: finalDataProps,
         },
     };
 }
@@ -67,14 +69,7 @@ const PostView = (
 };
 
 type TOnePost = Partial<TPost>;
-const Post: FC<TOnePost> = ({
-    content,
-    createdAt,
-    // id,
-    title,
-    // updatedAt,
-    // uuid,
-}) => (
+const Post: FC<TOnePost> = ({ content, createdAt, title }) => (
     <div className="mt-4 flex min-w-[300px] flex-col gap-2 rounded-2xl border bg-white p-4 shadow-lg">
         <p>
             <span className="font-bold">Title: </span> {title}
@@ -83,8 +78,8 @@ const Post: FC<TOnePost> = ({
             <span className="font-bold">Content: </span> {content}
         </p>
         <p>
-            Created On:{" "}
-            <code>{new Intl.DateTimeFormat("en-US").format(createdAt)}</code>
+            Created On:
+            <code>{createdAt}</code>
         </p>
     </div>
 );

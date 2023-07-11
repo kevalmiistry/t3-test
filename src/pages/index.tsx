@@ -1,28 +1,25 @@
-import type { InferGetServerSidePropsType } from "next";
-import { useState, type FC } from "react";
-// import { api } from "~/utils/api";
-import { Form } from "~/components/Form";
-import Head from "next/head";
-import { appRouter } from "~/server/api/root";
+import { type InferGetServerSidePropsType } from "next";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import superjson from "superjson";
+import { formatDistance } from "date-fns";
+import { appRouter } from "~/server/api/root";
+import { useState, type FC } from "react";
 import { prisma } from "~/server/db";
+import { Form } from "~/components/Form";
+import superjson from "superjson";
+import Head from "next/head";
 import Link from "next/link";
+// import { api } from "~/utils/api";
 
 export type TPost = {
     id: string;
     uuid: string;
     title: string;
     content: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: string;
+    updatedAt: string;
 };
 
-// type HomeProps = {
-//     data: TPost[];
-// };
-
-export async function getServerSideProps() {
+export const getServerSideProps = async () => {
     const helpers = createServerSideHelpers({
         router: appRouter,
         ctx: {
@@ -31,31 +28,27 @@ export async function getServerSideProps() {
         },
         transformer: superjson,
     });
-    /*
-     * Prefetching the `post.byId` query.
-     * `prefetch` does not return the result and never throws - if you need that behavior, use `fetch` instead.
-     */
+
     const data = await helpers.posts.getAllPosts.fetch();
-    // Make sure to return { props: { trpcState: helpers.dehydrate() } }
+
+    const finalDataProps = data.map((data) => ({
+        ...data,
+        createdAt: formatDistance(new Date(data.createdAt), new Date()),
+        updatedAt: formatDistance(new Date(data.updatedAt), new Date()),
+    }));
+
     return {
         props: {
             trpcState: helpers.dehydrate(),
-            data: data,
+            data: finalDataProps,
         },
     };
-}
+};
 
 const Home = (
     props: InferGetServerSidePropsType<typeof getServerSideProps>
 ) => {
-    // const { data } = await api.posts.getAllPosts.useQuery();
     const [posts, setPosts] = useState<TPost[]>(props.data || []);
-
-    // useEffect(() => {
-    //     isFetched && setPosts(data || []);
-    // }, [isFetched, data]);
-
-    // if (error) return <p>Oops! something wen wrong :(</p>;
 
     return (
         <>
@@ -64,7 +57,6 @@ const Home = (
                 <meta name="description" content="Keval Mistry's App 😎" />
             </Head>
             <main className="flex flex-col items-center">
-                {/* <p>{JSON.stringify()}</p> */}
                 <Form setPosts={setPosts} />
                 {false ? (
                     <p className="text-center">Loading...</p>
@@ -76,14 +68,7 @@ const Home = (
     );
 };
 
-const Post: FC<TPost> = ({
-    content,
-    createdAt,
-    id,
-    title,
-    // updatedAt,
-    // uuid,
-}) => (
+const Post: FC<TPost> = ({ content, createdAt, id, title }) => (
     <Link href={`/post/${id}`}>
         <div className="mt-4 flex min-w-[300px] flex-col gap-2 rounded-2xl border bg-white p-4 shadow-lg">
             <p>
@@ -93,10 +78,7 @@ const Post: FC<TPost> = ({
                 <span className="font-bold">Content: </span> {content}
             </p>
             <p>
-                Created On:{" "}
-                <code>
-                    {new Intl.DateTimeFormat("en-US").format(createdAt)}
-                </code>
+                Created On: <code>{createdAt}</code>
             </p>
         </div>
     </Link>
