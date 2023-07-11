@@ -2,6 +2,7 @@ import type { FC, ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { api } from "~/utils/api";
 import { type TPost } from "~/pages";
+import { formatDistance } from "date-fns";
 
 type TForm = {
     setPosts: Dispatch<SetStateAction<TPost[]>>;
@@ -14,8 +15,20 @@ export const Form: FC<TForm> = ({ setPosts }) => {
     const handleCreate = () => {
         creatPost.mutate(form, {
             onSuccess(data) {
-                console.log(data);
-                setPosts((prev) => [data, ...prev]);
+                const finalData = {
+                    ...data,
+                    createdAt: formatDistance(
+                        new Date(data.createdAt),
+                        new Date()
+                    ),
+                    updatedAt: formatDistance(
+                        new Date(data.updatedAt),
+                        new Date()
+                    ),
+                };
+
+                // console.log(data);
+                setPosts((prev) => [finalData, ...prev]);
                 setForm({ content: "", title: "" });
             },
         });
