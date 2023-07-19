@@ -1,54 +1,86 @@
-import { type InferGetServerSidePropsType } from "next";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import { formatDistance } from "date-fns";
-import { appRouter } from "~/server/api/root";
-import { useState, type FC } from "react";
-import { prisma } from "~/server/db";
-import { Form } from "~/components/Form";
-import superjson from "superjson";
-import Head from "next/head";
-import Link from "next/link";
-// import { api } from "~/utils/api";
+import type {
+    GetServerSidePropsContext,
+    InferGetServerSidePropsType,
+} from "next"
+import { signIn, signOut, useSession } from "next-auth/react"
+import { createServerSideHelpers } from "@trpc/react-query/server"
+import { getServerAuthSession } from "~/server/auth"
+import { formatDistance } from "date-fns"
+import { appRouter } from "~/server/api/root"
+import { useState, type FC } from "react"
+import { TRPCError } from "@trpc/server"
+import { prisma } from "~/server/db"
+import { Form } from "~/components/Form"
+import superjson from "superjson"
+import Head from "next/head"
+import Link from "next/link"
 
 export type TPost = {
-    id: string;
-    uuid: string;
-    title: string;
-    content: string;
-    createdAt: string;
-    updatedAt: string;
-};
+    id: string
+    uuid: string
+    title: string
+    content: string
+    createdAt: string
+    updatedAt: string
+}
 
-export const getServerSideProps = async () => {
+export const getServerSideProps = async (
+    context: GetServerSidePropsContext
+) => {
+    const session = await getServerAuthSession(context)
+
+    // if (!session?.user) {
+    //     return {
+    //         redirect: {
+    //             destination: "/login",
+    //             permanent: false,
+    //         },
+    //     }
+    // }
+
     const helpers = createServerSideHelpers({
         router: appRouter,
         ctx: {
-            session: null,
+            session: session,
             prisma: prisma,
         },
         transformer: superjson,
-    });
+    })
 
-    const data = await helpers.posts.getAllPosts.fetch();
+    try {
+        const data = await helpers.posts.getAllPosts.fetch()
 
-    const finalDataProps = data.map((data) => ({
-        ...data,
-        createdAt: formatDistance(new Date(data.createdAt), new Date()),
-        updatedAt: formatDistance(new Date(data.updatedAt), new Date()),
-    }));
+        const finalDataProps = data.map((data) => ({
+            ...data,
+            createdAt: formatDistance(new Date(data.createdAt), new Date()),
+            updatedAt: formatDistance(new Date(data.updatedAt), new Date()),
+        }))
 
-    return {
-        props: {
-            trpcState: helpers.dehydrate(),
-            data: finalDataProps,
-        },
-    };
-};
+        return {
+            props: {
+                trpcState: helpers.dehydrate(),
+                data: finalDataProps,
+            },
+        }
+    } catch (error) {
+        if (error instanceof TRPCError) {
+            if (error?.code === "UNAUTHORIZED") {
+                return {
+                    redirect: {
+                        destination: "/unauthorized",
+                        permanent: false,
+                    },
+                }
+            }
+        }
+    }
+}
 
 const Home = (
     props: InferGetServerSidePropsType<typeof getServerSideProps>
 ) => {
-    const [posts, setPosts] = useState<TPost[]>(props.data || []);
+    const [posts, setPosts] = useState<TPost[]>(props.data || [])
+    const { data: session } = useSession()
 
     return (
         <>
@@ -57,6 +89,13 @@ const Home = (
                 <meta name="description" content="Keval Mistry's App 😎" />
             </Head>
             <main className="flex flex-col items-center">
+                {session ? (
+                    <button onClick={() => void signOut()}>Sign Out</button>
+                ) : (
+                    <button onClick={() => void signIn("google")}>
+                        Sign In
+                    </button>
+                )}
                 <Form setPosts={setPosts} />
                 {false ? (
                     <p className="text-center">Loading...</p>
@@ -65,8 +104,8 @@ const Home = (
                 )}
             </main>
         </>
-    );
-};
+    )
+}
 
 const Post: FC<TPost> = ({ content, createdAt, id, title }) => (
     <Link href={`/post/${id}`}>
@@ -82,6 +121,6 @@ const Post: FC<TPost> = ({ content, createdAt, id, title }) => (
             </p>
         </div>
     </Link>
-);
+)
 
-export default Home;
+export default Home

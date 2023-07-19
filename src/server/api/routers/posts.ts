@@ -1,9 +1,13 @@
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { z } from "zod";
+import {
+    createTRPCRouter,
+    protectedProcedure,
+    publicProcedure,
+} from "~/server/api/trpc"
+import { z } from "zod"
 
 export const postsRouter = createTRPCRouter({
-    getAllPosts: publicProcedure.query(async ({ ctx }) => {
-        return await ctx.prisma.post.findMany();
+    getAllPosts: protectedProcedure.query(async ({ ctx }) => {
+        return await ctx.prisma.post.findMany()
         // return ctx.prisma.post.findMany({
         //     orderBy: [
         //         {
@@ -22,7 +26,7 @@ export const postsRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             return await ctx.prisma.post.create({
                 data: input,
-            });
+            })
         }),
 
     getOnePost: publicProcedure
@@ -33,9 +37,9 @@ export const postsRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input: { id } }) => {
             if (id) {
-                return await ctx.prisma.post.findUnique({ where: { id } });
+                return await ctx.prisma.post.findUnique({ where: { id } })
             } else {
-                throw Error("Not found");
+                throw Error("Not found")
             }
         }),
-});
+})
