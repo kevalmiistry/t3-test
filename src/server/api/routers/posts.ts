@@ -7,14 +7,13 @@ import { z } from "zod"
 
 export const postsRouter = createTRPCRouter({
     getAllPosts: protectedProcedure.query(async ({ ctx }) => {
-        return await ctx.prisma.post.findMany()
-        // return ctx.prisma.post.findMany({
-        //     orderBy: [
-        //         {
-        //             updatedAt: "desc",
-        //         },
-        //     ],
-        // });
+        return ctx.prisma.post.findMany({
+            orderBy: [
+                {
+                    updatedAt: "desc",
+                },
+            ],
+        })
     }),
     createPost: publicProcedure
         .input(
