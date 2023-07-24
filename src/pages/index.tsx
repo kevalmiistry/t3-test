@@ -67,7 +67,7 @@ export const getServerSideProps = async (
             if (error?.code === "UNAUTHORIZED") {
                 return {
                     redirect: {
-                        destination: "/unauthorized",
+                        destination: "/auth",
                         permanent: false,
                     },
                 }
