@@ -28,7 +28,7 @@ export const postsRouter = createTRPCRouter({
             })
         }),
 
-    getOnePost: publicProcedure
+    getOnePost: protectedProcedure
         .input(
             z.object({
                 id: z.string(),

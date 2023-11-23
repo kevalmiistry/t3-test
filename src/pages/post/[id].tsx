@@ -1,59 +1,77 @@
 import type {
     GetServerSidePropsContext,
     InferGetServerSidePropsType,
-} from "next";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import { formatDistance } from "date-fns";
-import { appRouter } from "~/server/api/root";
-import { prisma } from "~/server/db";
-import { type TPost } from "..";
-import { type FC } from "react";
-import superjson from "superjson";
-import Head from "next/head";
+} from "next"
+import { createServerSideHelpers } from "@trpc/react-query/server"
+import { formatDistance } from "date-fns"
+import { appRouter } from "~/server/api/root"
+import { prisma } from "~/server/db"
+import { type TPost } from ".."
+import { type FC } from "react"
+import superjson from "superjson"
+import Head from "next/head"
+import { getServerAuthSession } from "~/server/auth"
+import { TRPCError } from "@trpc/server"
 // import { api } from "~/utils/api";
 
 export async function getServerSideProps(
     context: GetServerSidePropsContext<{ id: string }>
 ) {
+    const session = await getServerAuthSession(context)
+
     const helpers = createServerSideHelpers({
         router: appRouter,
         ctx: {
-            session: null,
+            session,
             prisma: prisma,
         },
         transformer: superjson,
-    });
-    const id = context.params?.id as string;
-    const data = await helpers.posts.getOnePost.fetch({
-        id: id,
-    });
+    })
 
-    const finalDataProps =
-        data !== null
-            ? {
-                  ...data,
-                  createdAt: formatDistance(
-                      new Date(data.createdAt),
-                      new Date()
-                  ),
-                  updatedAt: formatDistance(
-                      new Date(data.updatedAt),
-                      new Date()
-                  ),
-              }
-            : null;
-    return {
-        props: {
-            trpcState: helpers.dehydrate(),
-            data: finalDataProps,
-        },
-    };
+    try {
+        const id = context.params?.id as string
+        const data = await helpers.posts.getOnePost.fetch({
+            id: id,
+        })
+
+        const finalDataProps =
+            data !== null
+                ? {
+                      ...data,
+                      createdAt: formatDistance(
+                          new Date(data.createdAt),
+                          new Date()
+                      ),
+                      updatedAt: formatDistance(
+                          new Date(data.updatedAt),
+                          new Date()
+                      ),
+                  }
+                : null
+        return {
+            props: {
+                trpcState: helpers.dehydrate(),
+                data: finalDataProps,
+            },
+        }
+    } catch (error) {
+        if (error instanceof TRPCError) {
+            if (error?.code === "UNAUTHORIZED") {
+                return {
+                    redirect: {
+                        destination: "/auth",
+                        permanent: false,
+                    },
+                }
+            }
+        }
+    }
 }
 
 const PostView = (
     props: InferGetServerSidePropsType<typeof getServerSideProps>
 ) => {
-    const { data } = props;
+    const { data } = props
 
     return (
         <>
@@ -73,10 +91,10 @@ const PostView = (
                 {data && <Post key={data.id} {...data} />}
             </main>
         </>
-    );
-};
+    )
+}
 
-type TOnePost = Partial<TPost>;
+type TOnePost = Partial<TPost>
 const Post: FC<TOnePost> = ({ content, createdAt, title }) => (
     <div className="mt-4 flex min-w-[300px] flex-col gap-2 rounded-2xl border bg-white p-4 shadow-lg">
         <p>
@@ -90,6 +108,6 @@ const Post: FC<TOnePost> = ({ content, createdAt, title }) => (
             <code>{createdAt}</code>
         </p>
     </div>
-);
+)
 
-export default PostView;
+export default PostView
